@@ -132,5 +132,7 @@ export async function restorePageTimes() {
     const result = await chrome.storage.local.get(['_pageTimes', '_currentPage']);
     if (result._pageTimes) pageTimeLog = result._pageTimes;
     if (result._currentPage) currentPage = result._currentPage;
-  } catch (e) {}
+  } catch (e) {
+    // Fresh start if storage is corrupted
+  }
 }

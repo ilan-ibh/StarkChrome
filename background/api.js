@@ -114,9 +114,6 @@ export async function sendDigest(digestMessage) {
   return postToAgent(digestMessage, 'next-heartbeat');
 }
 
-export async function sendHistoryImport(message) {
-  return postToAgent(message);
-}
 
 // ============================================================
 // Stats
@@ -134,7 +131,9 @@ async function updateStats(success) {
       stats.lastError = new Date().toISOString();
     }
     await chrome.storage.local.set({ webhookStats: stats });
-  } catch (e) {}
+  } catch (e) {
+    // Stats are non-critical, don't block on failure
+  }
 }
 
 export async function getStats() {

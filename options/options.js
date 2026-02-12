@@ -134,6 +134,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       els.storageKB.textContent = '?';
     }
 
+    // Retention
+    const retResult = await chrome.storage.local.get('storeRetention');
+    els.retention.value = retResult.storeRetention || 90;
+
     els.statsSent.textContent = stats.sent || 0;
     els.statsFailed.textContent = stats.failed || 0;
   }
@@ -150,13 +154,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       sendComeback: els.sendComeback.checked,
     };
 
+    // Preserve the master toggle state from popup (don't override it)
+    const existingPrivacy = (await chrome.storage.local.get('privacy')).privacy || {};
     const privacy = {
-      enabled: true,
+      enabled: existingPrivacy.enabled !== false,
       trackIncognito: els.trackIncognito.checked,
       domainBlocklist: els.blocklist.value.split('\n').map(s => s.trim()).filter(Boolean),
     };
 
-    await chrome.storage.local.set({ config, privacy });
+    const retention = parseInt(els.retention.value) || 90;
+    await chrome.storage.local.set({ config, privacy, storeRetention: retention });
   }
 
   function toast(msg) {

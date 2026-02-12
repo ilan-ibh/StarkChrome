@@ -3,7 +3,7 @@
 
 const CATEGORIES = {
   dev: ['github.com', 'gitlab.com', 'stackoverflow.com', 'stackexchange.com', 'localhost', 'vercel.com', 'netlify.com', 'supabase.com', 'aws.amazon.com', 'console.cloud.google.com', 'azure.com', 'digitalocean.com', 'heroku.com', 'railway.app', 'render.com', 'fly.io', 'npmjs.com', 'pypi.org', 'crates.io', 'pkg.go.dev', 'docker.com', 'hub.docker.com', 'codepen.io', 'replit.com', 'codesandbox.io', 'developer.mozilla.org', 'devdocs.io', 'w3schools.com'],
-  ai: ['claude.ai', 'chat.openai.com', 'platform.openai.com', 'perplexity.ai', 'aistudio.google.com', 'huggingface.co', 'replicate.com', 'midjourney.com', 'cursor.com', 'copilot.github.com', 'kaggle.com', 'colab.research.google.com', 'together.ai', 'groq.com', 'openclaw'],
+  ai: ['claude.ai', 'chat.openai.com', 'platform.openai.com', 'perplexity.ai', 'aistudio.google.com', 'huggingface.co', 'replicate.com', 'midjourney.com', 'cursor.com', 'copilot.github.com', 'kaggle.com', 'colab.research.google.com', 'together.ai', 'groq.com', 'openclaw.ai'],
   social: ['twitter.com', 'x.com', 'reddit.com', 'linkedin.com', 'facebook.com', 'instagram.com', 'threads.net', 'mastodon.social', 'bsky.app', 'tiktok.com'],
   news: ['techcrunch.com', 'theverge.com', 'arstechnica.com', 'news.ycombinator.com', 'bbc.com', 'reuters.com', 'nytimes.com', 'wired.com', 'cnn.com', 'apnews.com'],
   video: ['youtube.com', 'twitch.tv', 'vimeo.com', 'netflix.com', 'hulu.com', 'disneyplus.com', 'primevideo.com', 'spotify.com'],

@@ -8,6 +8,7 @@ import { categorize } from './categories.js';
 const STORE_KEY = 'eventLog';
 const META_KEY = 'storeMeta';
 const DEFAULT_RETENTION_DAYS = 90;
+let retentionDays = DEFAULT_RETENTION_DAYS;
 
 // In-memory cache for fast access (loaded from storage on init)
 let eventLog = [];
@@ -16,10 +17,11 @@ let storeMeta = { totalEvents: 0, oldestEvent: null, newestEvent: null };
 // Initialize store — load from storage
 export async function initStore() {
   try {
-    const result = await chrome.storage.local.get([STORE_KEY, META_KEY]);
+    const result = await chrome.storage.local.get([STORE_KEY, META_KEY, 'storeRetention']);
     eventLog = result[STORE_KEY] || [];
     storeMeta = result[META_KEY] || { totalEvents: 0, oldestEvent: null, newestEvent: null };
-    console.log(`[StarkChrome] Store loaded: ${eventLog.length} events`);
+    retentionDays = result.storeRetention || DEFAULT_RETENTION_DAYS;
+    console.log(`[StarkChrome] Store loaded: ${eventLog.length} events (${retentionDays}-day retention)`);
   } catch (e) {
     console.error('[StarkChrome] Store init failed:', e);
     eventLog = [];
@@ -56,7 +58,7 @@ export async function recordEvent(event) {
 function compactData(event) {
   switch (event.type) {
     case 'navigation':
-      return { transition: event.data?.transitionType };
+      return {};
     case 'tab.activated':
       return {};
     case 'bookmark.created':
@@ -97,7 +99,7 @@ async function persistStore() {
 
 // Remove events older than retention period
 function enforceRetention() {
-  const cutoff = Date.now() - DEFAULT_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
   const before = eventLog.length;
   eventLog = eventLog.filter(e => e.t > cutoff);
   if (eventLog.length < before) {

@@ -41,7 +41,6 @@ async function initialize() {
 
   updateBadge();
 
-  const config = getConfig();
   console.log('[StarkChrome] v2 initialized');
   console.log('[StarkChrome] Tracking:', privacy.enabled ? 'ON' : 'OFF');
   console.log('[StarkChrome] Webhook:', isConfigured() ? 'connected' : 'not configured');

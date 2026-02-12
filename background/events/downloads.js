@@ -27,7 +27,9 @@ export function registerDownloadEvents() {
 
       // HIGH-VALUE: Send to agent immediately
       sendDownloadEvent(filename, mime, url);
-    } catch (e) {}
+    } catch (e) {
+      // Download may have been removed or is inaccessible
+    }
   });
 
   console.log('[StarkChrome] Download events registered');

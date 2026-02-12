@@ -34,7 +34,7 @@ export function getPrivacySettings() {
 export function shouldTrack(url) {
   const settings = getPrivacySettings();
   if (!settings.enabled) return false;
-  if (!url) return true;
+  if (!url) return false;
 
   // Never track internal browser pages
   for (const pattern of INTERNAL_PATTERNS) {
@@ -47,7 +47,9 @@ export function shouldTrack(url) {
     for (const term of settings.domainBlocklist) {
       if (term && hostname.includes(term.toLowerCase().trim())) return false;
     }
-  } catch (e) {}
+  } catch (e) {
+    // Invalid URL — allow tracking (will be filtered elsewhere)
+  }
 
   return true;
 }

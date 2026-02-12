@@ -79,6 +79,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         importBtn.disabled = false;
       }
     } catch (e) {
+      actionStatus.textContent = 'Error: ' + e.message;
+      actionStatus.className = 'action-status error';
       importBtn.disabled = false;
       importBtn.textContent = 'Import History';
     }

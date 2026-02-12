@@ -4,7 +4,7 @@
 
 import { recordEvent } from '../store.js';
 import { getConfig, sendComebackEvent } from '../api.js';
-import { trackIdle } from '../tracker.js';
+import { trackIdle, trackPageChange } from '../tracker.js';
 
 let lastIdleStart = null;
 let currentState = 'active';
@@ -33,24 +33,35 @@ export function registerIdleEvents() {
       lastIdleStart = null;
       chrome.storage.local.remove('_idleStart');
 
-      if (idleStart) {
-        const awayMinutes = Math.round((now - idleStart) / 60000);
-        const config = getConfig();
-        const threshold = config.comebackMinutes || 30;
+      // Restart time-on-page tracking with current tab
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.url) {
+          trackPageChange(tab.url, tab.title, tab.id);
+        }
 
-        if (awayMinutes >= threshold) {
-          // Record comeback locally
-          recordEvent({
-            type: 'user.comeback',
-            data: { awayMinutes, returnedAt: new Date(now).toISOString() },
-          });
+        if (idleStart) {
+          const awayMinutes = Math.round((now - idleStart) / 60000);
+          const config = getConfig();
+          const threshold = config.comebackMinutes || 30;
 
-          // HIGH-VALUE: Send to agent
-          // Get current tab for context
-          try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (awayMinutes >= threshold) {
+            recordEvent({
+              type: 'user.comeback',
+              data: { awayMinutes, returnedAt: new Date(now).toISOString() },
+            });
+
+            // HIGH-VALUE: Send to agent
             sendComebackEvent(awayMinutes, tab?.url || '');
-          } catch (e) {
+          }
+        }
+      } catch (e) {
+        // Tab query may fail if no windows open
+        if (idleStart) {
+          const awayMinutes = Math.round((now - idleStart) / 60000);
+          const config = getConfig();
+          if (awayMinutes >= (config.comebackMinutes || 30)) {
+            recordEvent({ type: 'user.comeback', data: { awayMinutes, returnedAt: new Date(now).toISOString() } });
             sendComebackEvent(awayMinutes, '');
           }
         }

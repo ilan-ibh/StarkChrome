@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>StarkChrome</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">S</div>
+        <div>
+          <h1>StarkChrome</h1>
+          <p class="subtitle" id="subtitle">v2.0</p>
+        </div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="masterToggle">
+        <span class="slider"></span>
+      </label>
+    </header>
+
+    <!-- Connection -->
+    <div class="status-bar">
+      <span class="dot" id="dot"></span>
+      <span id="connectionLabel">Checking...</span>
+    </div>
+
+    <!-- Local Store -->
+    <div class="stat-row">
+      <span class="stat-label">Local events</span>
+      <span class="stat-value" id="eventCount">0</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Storage</span>
+      <span class="stat-value" id="storageSize">0 KB</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Webhooks sent</span>
+      <span class="stat-value" id="webhooksSent">0</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Last webhook</span>
+      <span class="stat-value muted" id="lastWebhook">Never</span>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn btn-primary" id="digestBtn">Send Digest Now</button>
+      <button class="btn btn-secondary" id="importBtn">Import History</button>
+    </div>
+    <p class="action-status" id="actionStatus"></p>
+
+    <div class="actions">
+      <button class="btn btn-ghost" id="optionsBtn">Settings</button>
+    </div>
+
+    <footer class="footer">
+      <span id="footerText">StarkChrome v2.0</span>
+    </footer>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

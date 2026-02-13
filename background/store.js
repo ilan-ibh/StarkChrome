@@ -189,6 +189,12 @@ export async function getPageContent(date) {
   return (await chrome.storage.local.get(key))[key] || [];
 }
 
+// Get today's page contents (convenience for digest + logger)
+export async function getTodayPageContents() {
+  const todayKey = new Date().toISOString().slice(0, 10);
+  return getPageContent(todayKey);
+}
+
 // ============================================================
 
 // Export all events as JSON

@@ -7,6 +7,7 @@ import { getEventsForDay, getDomainStats, getPageContent } from './store.js';
 import { getPageTimes, formatDuration, getTotalActiveTime, resetPageTimes } from './tracker.js';
 import { categoryLabel, categoryEmoji, categorize } from './categories.js';
 import { sendDigest, getConfig } from './api.js';
+import { postToLogger, isLoggerConfigured } from './logger.js';
 
 const DIGEST_ALARM = 'starkchrome-daily-digest';
 const LAST_DIGEST_KEY = 'lastDigestDate';
@@ -72,15 +73,35 @@ export async function buildAndSendDigest(targetDate) {
   // Build the digest message
   const message = formatDigest(dateStr, events, domainStats, pageTimes, totalActive, pageContents);
 
-  // Send it
-  const result = await sendDigest(message);
+  // Dual delivery: webhook (agent) + logger (markdown files)
+  const results = { webhook: null, logger: null };
 
-  if (result.success) {
-    await chrome.storage.local.set({ [LAST_DIGEST_KEY]: todayKey });
-    resetPageTimes(); // Reset time tracking for the new day
+  // 1. Send to OpenClaw webhook
+  results.webhook = await sendDigest(message);
+
+  // 2. Send to logger endpoint (for file persistence)
+  if (isLoggerConfigured()) {
+    results.logger = await postToLogger({
+      type: 'daily.digest',
+      timestamp: Date.now(),
+      data: {
+        date: todayKey,
+        message,
+        eventCount: events.length,
+        domainCount: Object.keys(domainStats).length,
+        pageContentCount: pageContents?.length || 0,
+      },
+    });
+    console.log('[StarkChrome] Digest sent to logger:', results.logger.success ? 'OK' : 'failed');
   }
 
-  return result;
+  // Mark as sent if either endpoint succeeded
+  if (results.webhook?.success || results.logger?.success) {
+    await chrome.storage.local.set({ [LAST_DIGEST_KEY]: todayKey });
+    resetPageTimes();
+  }
+
+  return results.webhook || results.logger || { success: false, reason: 'no_endpoint' };
 }
 
 // Format the digest as plain text

@@ -13,6 +13,7 @@ import { registerDownloadEvents } from './events/downloads.js';
 import { registerIdleEvents } from './events/idle.js';
 import { scheduleDigest, handleDigestAlarm, buildAndSendDigest } from './digest.js';
 import { hasImported, runImport, resetImport, getImportStatus } from './history-import.js';
+import { startKeepAlive, handleKeepAlive } from './keepalive.js';
 
 console.log('[StarkChrome] v2 service worker starting...');
 
@@ -41,6 +42,7 @@ async function initialize() {
     scheduleDigest();
   }
 
+  startKeepAlive();
   updateBadge();
 
   console.log('[StarkChrome] v2 initialized');
@@ -53,13 +55,15 @@ async function initialize() {
 // ============================================================
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+  // Keep-alive tick (30s) — persists tracker state
+  if (await handleKeepAlive(alarm)) return;
+
   // Daily digest
   if (await handleDigestAlarm(alarm)) return;
 
-  // Periodic store + tracker persistence (every 5 min)
+  // Periodic store flush (every 5 min)
   if (alarm.name === 'starkchrome-persist') {
     await flushStore();
-    await persistPageTimes();
   }
 });
 

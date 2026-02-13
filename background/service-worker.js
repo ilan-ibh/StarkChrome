@@ -4,6 +4,7 @@
 
 import { loadPrivacySettings, getPrivacySettings } from './privacy.js';
 import { loadConfig, getConfig, isConfigured, postToAgent } from './api.js';
+import { loadLoggerConfig, getLoggerConfig, isLoggerConfigured, getLoggerStats } from './logger.js';
 import { initStore, flushStore, getStoreStats } from './store.js';
 import { restorePageTimes, persistPageTimes } from './tracker.js';
 import { registerTabEvents } from './events/tabs.js';
@@ -23,6 +24,7 @@ async function initialize() {
   await Promise.all([
     loadPrivacySettings(),
     loadConfig(),
+    loadLoggerConfig(),
     initStore(),
     restorePageTimes(),
   ]);
@@ -84,12 +86,15 @@ async function handleMessage(msg) {
       const store = getStoreStats();
       const { webhookStats } = await chrome.storage.local.get('webhookStats');
       const stats = webhookStats || { sent: 0, failed: 0, lastSend: null };
+      const loggerStats = await getLoggerStats();
       return {
         enabled: privacy.enabled,
         configured: isConfigured(),
+        loggerConfigured: isLoggerConfigured(),
         webhookUrl: config.webhookUrl ? '***configured***' : '',
         store,
         stats,
+        loggerStats,
       };
     }
 

@@ -38,6 +38,28 @@
       </div>
     </section>
 
+    <!-- Logger Endpoint -->
+    <section class="card">
+      <h2>Content Logger</h2>
+      <p class="card-desc">Continuous page content logging. When you spend 60+ seconds on a page, extracts readable text and sends it to your logger. Cheap, always-on.</p>
+      <div class="form-group">
+        <label for="loggerUrl">Logger URL</label>
+        <input type="url" id="loggerUrl" placeholder="https://logger.example.com/events">
+      </div>
+      <div class="form-group">
+        <label for="loggerToken">Logger Token</label>
+        <div class="input-row">
+          <input type="password" id="loggerToken" placeholder="Bearer token">
+          <button class="btn-icon" id="toggleLoggerToken">&#128065;</button>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="loggerEnabled"><span>Enable content logging</span></label>
+      <div class="btn-row">
+        <button class="btn btn-sm" id="testLoggerBtn">Test Logger</button>
+        <span class="result" id="testLoggerResult"></span>
+      </div>
+    </section>
+
     <!-- Schedule -->
     <section class="card">
       <h2>Schedule</h2>
@@ -79,6 +101,10 @@
       <div class="stats-row">
         <span>Webhooks sent: <strong id="statsSent">0</strong></span>
         <span>Failed: <strong id="statsFailed">0</strong></span>
+      </div>
+      <div class="stats-row">
+        <span>Logger sent: <strong id="loggerSent">0</strong></span>
+        <span>Failed: <strong id="loggerFailed">0</strong></span>
       </div>
     </section>
 

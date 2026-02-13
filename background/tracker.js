@@ -1,17 +1,20 @@
-// StarkChrome v2 — Time-on-Page Tracker + Content Extraction
+// StarkChrome v2 — Time-on-Page Tracker + Content Extraction + Logger
 // Tracks how long the user spends on each page/tab.
-// When user leaves a page after 30s+, extracts readable content via content script.
+// When user leaves a page after 60s+, extracts content and sends to logger.
 
-import { getDomain, shouldTrack } from './privacy.js';
+import { getDomain, shouldTrack, sanitizeUrl } from './privacy.js';
 import { addPageContent } from './store.js';
+import { postToLogger, isLoggerConfigured } from './logger.js';
 
 let currentPage = null; // { url, domain, title, startTime, tabId }
 let pageTimeLog = [];   // accumulated page times for today
+const sentUrls = new Set(); // per-session dedup — only send each URL once
 
 const MIN_DURATION_MS = 3000;           // Ignore <3 second bounces
 const MAX_DURATION_MS = 30 * 60 * 1000; // Cap at 30 minutes
-const CONTENT_MIN_MS = 30 * 1000;       // Extract content after 30s+
+const CONTENT_MIN_MS = 60 * 1000;       // Extract + log content after 60s+
 const CONTENT_MAX_MS = 30 * 60 * 1000;  // Skip if >30 min (probably idle)
+const MIN_TEXT_LENGTH = 200;            // Page must have >200 chars to be worth extracting
 
 // Called when user navigates to a new page or switches tabs
 export function trackPageChange(url, title, tabId) {
@@ -23,9 +26,9 @@ export function trackPageChange(url, title, tabId) {
     if (duration >= MIN_DURATION_MS) {
       accumulateTime(currentPage.domain, duration);
     }
-    // Extract content for meaningful visits (30s - 30min)
+    // Extract content for meaningful visits (60s - 30min)
     if (duration >= CONTENT_MIN_MS && duration <= CONTENT_MAX_MS) {
-      extractPageContent(currentPage.tabId, currentPage.url, currentPage.title, duration);
+      extractAndLog(currentPage.tabId, currentPage.url, currentPage.title, duration);
     }
   }
 
@@ -51,7 +54,7 @@ export function trackIdle() {
       accumulateTime(currentPage.domain, duration);
     }
     if (duration >= CONTENT_MIN_MS && duration <= CONTENT_MAX_MS) {
-      extractPageContent(currentPage.tabId, currentPage.url, currentPage.title, duration);
+      extractAndLog(currentPage.tabId, currentPage.url, currentPage.title, duration);
     }
     currentPage = null;
   }
@@ -62,27 +65,71 @@ export function trackActive(url, title, tabId) {
   trackPageChange(url, title, tabId);
 }
 
-// Extract readable content from the page via content script
-async function extractPageContent(tabId, url, title, timeSpent) {
-  // Don't extract for internal URLs
+// Extract readable content and send to logger + local store
+async function extractAndLog(tabId, url, title, timeSpent) {
   if (!url || url.startsWith('chrome://') || url.startsWith('chrome-extension://')) return;
   if (!shouldTrack(url)) return;
 
+  // Per-session dedup — only send each URL once
+  const cleanUrl = sanitizeUrl(url);
+  if (sentUrls.has(cleanUrl)) return;
+
   try {
     const content = await chrome.tabs.sendMessage(tabId, { type: 'extract_content' });
-    if (content && content.text && content.text.length > 100) {
-      await addPageContent({
-        url,
-        title: title || content.meta?.title || '',
-        timeSpent,
-        content: content.text.slice(0, 2000), // 2000 chars for storage
-        meta: content.meta || {},
+    if (!content || !content.text || content.text.length < MIN_TEXT_LENGTH) return;
+
+    const contentText = content.text.slice(0, 2000);
+    const summary = buildSummary(content);
+
+    // Mark as sent for this session
+    sentUrls.add(cleanUrl);
+
+    // Store locally (for daily digest)
+    await addPageContent({
+      url: cleanUrl,
+      title: title || content.meta?.title || '',
+      timeSpent,
+      content: contentText,
+      meta: content.meta || {},
+      timestamp: Date.now(),
+    });
+
+    // Send to logger endpoint (if configured)
+    if (isLoggerConfigured()) {
+      await postToLogger({
+        type: 'page.content',
         timestamp: Date.now(),
+        data: {
+          url: cleanUrl,
+          title: title || content.meta?.title || '',
+          summary,
+          content: contentText,
+          timeSpent,
+        },
       });
     }
   } catch (e) {
     // Content script not available (PDF, chrome pages, etc.) — skip silently
   }
+}
+
+// Build a 2-3 sentence summary from meta description or first paragraph
+function buildSummary(content) {
+  // Prefer meta description if available
+  if (content.meta?.description && content.meta.description.length > 20) {
+    return content.meta.description.slice(0, 300);
+  }
+  // Fall back to first 200 chars of body text
+  if (content.text) {
+    const firstChunk = content.text.slice(0, 300);
+    // Try to cut at a sentence boundary
+    const lastPeriod = firstChunk.lastIndexOf('.');
+    if (lastPeriod > 100) {
+      return firstChunk.slice(0, lastPeriod + 1);
+    }
+    return firstChunk.slice(0, 200);
+  }
+  return '';
 }
 
 // Accumulate time for a domain

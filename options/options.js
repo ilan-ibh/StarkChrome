@@ -26,6 +26,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     digestBtn: document.getElementById('digestBtn'),
     statsSent: document.getElementById('statsSent'),
     statsFailed: document.getElementById('statsFailed'),
+    loggerUrl: document.getElementById('loggerUrl'),
+    loggerToken: document.getElementById('loggerToken'),
+    toggleLoggerToken: document.getElementById('toggleLoggerToken'),
+    loggerEnabled: document.getElementById('loggerEnabled'),
+    testLoggerBtn: document.getElementById('testLoggerBtn'),
+    testLoggerResult: document.getElementById('testLoggerResult'),
+    loggerSent: document.getElementById('loggerSent'),
+    loggerFailed: document.getElementById('loggerFailed'),
     saveBtn: document.getElementById('saveBtn'),
     toast: document.getElementById('toast'),
   };
@@ -34,6 +42,41 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   els.toggleToken.addEventListener('click', () => {
     els.token.type = els.token.type === 'password' ? 'text' : 'password';
+  });
+
+  els.toggleLoggerToken.addEventListener('click', () => {
+    els.loggerToken.type = els.loggerToken.type === 'password' ? 'text' : 'password';
+  });
+
+  els.testLoggerBtn.addEventListener('click', async () => {
+    els.testLoggerResult.textContent = 'Testing...';
+    els.testLoggerResult.className = 'result';
+    await save();
+    await new Promise(r => setTimeout(r, 300));
+    const url = els.loggerUrl.value.trim();
+    const token = sanitize(els.loggerToken.value);
+    if (!url || !token) {
+      els.testLoggerResult.textContent = 'URL + token required';
+      els.testLoggerResult.className = 'result err';
+      return;
+    }
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ type: 'test', timestamp: Date.now(), data: { message: 'StarkChrome logger test' } }),
+      });
+      if (response.ok || response.status === 202) {
+        els.testLoggerResult.textContent = `Logger connected! (${response.status})`;
+        els.testLoggerResult.className = 'result ok';
+      } else {
+        els.testLoggerResult.textContent = `Error ${response.status}`;
+        els.testLoggerResult.className = 'result err';
+      }
+    } catch (e) {
+      els.testLoggerResult.textContent = `Network error: ${e.message}`;
+      els.testLoggerResult.className = 'result err';
+    }
   });
 
   els.testBtn.addEventListener('click', async () => {
@@ -107,15 +150,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   async function load() {
-    const result = await chrome.storage.local.get(['config', 'privacy', 'storeMeta', 'webhookStats']);
+    const result = await chrome.storage.local.get(['config', 'privacy', 'storeMeta', 'webhookStats', 'loggerConfig', 'loggerStats']);
     const config = result.config || {};
     const privacy = result.privacy || {};
     const meta = result.storeMeta || {};
     const stats = result.webhookStats || {};
+    const loggerConfig = result.loggerConfig || {};
+    const loggerStats = result.loggerStats || {};
 
     els.webhookUrl.value = config.webhookUrl || '';
     els.token.value = config.token || '';
     els.enabled.checked = config.enabled || false;
+
+    // Logger
+    els.loggerUrl.value = loggerConfig.loggerUrl || '';
+    els.loggerToken.value = loggerConfig.loggerToken || '';
+    els.loggerEnabled.checked = loggerConfig.loggerEnabled || false;
     els.digestTime.value = config.digestTime || '20:00';
     els.sendBookmarks.checked = config.sendBookmarks !== false;
     els.sendDownloads.checked = config.sendDownloads !== false;
@@ -140,6 +190,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     els.statsSent.textContent = stats.sent || 0;
     els.statsFailed.textContent = stats.failed || 0;
+    els.loggerSent.textContent = loggerStats.sent || 0;
+    els.loggerFailed.textContent = loggerStats.failed || 0;
   }
 
   async function save() {
@@ -162,8 +214,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       domainBlocklist: els.blocklist.value.split('\n').map(s => s.trim()).filter(Boolean),
     };
 
+    const loggerConfig = {
+      loggerUrl: els.loggerUrl.value.trim(),
+      loggerToken: sanitize(els.loggerToken.value),
+      loggerEnabled: els.loggerEnabled.checked,
+    };
+
     const retention = parseInt(els.retention.value) || 90;
-    await chrome.storage.local.set({ config, privacy, storeRetention: retention });
+    await chrome.storage.local.set({ config, privacy, loggerConfig, storeRetention: retention });
   }
 
   function toast(msg) {

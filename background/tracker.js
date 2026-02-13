@@ -12,7 +12,7 @@ const sentUrls = new Set(); // per-session dedup — only send each URL once
 
 const MIN_DURATION_MS = 3000;           // Ignore <3 second bounces
 const MAX_DURATION_MS = 30 * 60 * 1000; // Cap at 30 minutes
-const CONTENT_MIN_MS = 60 * 1000;       // Extract + log content after 60s+
+const CONTENT_MIN_MS = 35 * 1000;       // Extract + log content after 35s+
 const CONTENT_MAX_MS = 30 * 60 * 1000;  // Skip if >30 min (probably idle)
 const MIN_TEXT_LENGTH = 200;            // Page must have >200 chars to be worth extracting
 
